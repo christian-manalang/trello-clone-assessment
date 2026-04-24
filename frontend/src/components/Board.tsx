@@ -60,15 +60,25 @@ function DroppableColumn({ status, tickets, onDelete }: { status: string; ticket
 export default function Board() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [newTitle, setNewTitle] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTickets = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch('http://localhost:3000/api/tickets');
+      if (!response.ok) throw new Error('Server returned an error');
+      
       const data = await response.json();
       setTickets(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Fetch error:', error);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Could not connect to the database. Please make sure the server is running.');
       setTickets([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,29 +161,56 @@ export default function Board() {
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="p-8 min-h-screen bg-gray-50">
-        <form onSubmit={handleAddTicket} className="mb-8 flex gap-2 max-w-md">
-          <input
-            type="text"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="New task..."
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-          <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">
-            Add
-          </button>
-        </form>
-
-        <div className="flex gap-6 overflow-x-auto">
-          {columns.map((status) => (
-            <DroppableColumn 
-              key={status} 
-              status={status} 
-              tickets={tickets.filter((t) => t.status === status)}
-              onDelete={handleDeleteTicket} 
+        
+        <div className="mb-8">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-6 tracking-tight">Project Board</h1>
+          <form onSubmit={handleAddTicket} className="flex gap-2 max-w-md">
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="What needs to be done?"
+              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm transition-shadow"
             />
-          ))}
+            <button 
+              type="submit" 
+              disabled={isLoading} 
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Add Task
+            </button>
+          </form>
         </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64 w-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-600"></div>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md w-full max-w-2xl">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-red-500 font-bold">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Connection Error</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-6 overflow-x-auto pb-4">
+            {columns.map((status) => (
+              <DroppableColumn 
+                key={status} 
+                status={status} 
+                tickets={tickets.filter((t) => t.status === status)}
+                onDelete={handleDeleteTicket} 
+              />
+            ))}
+          </div>
+        )}
+
       </div>
     </DndContext>
   );

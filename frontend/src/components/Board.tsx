@@ -3,7 +3,7 @@ import { DndContext, type DragEndEvent, useDraggable, useDroppable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import type { Ticket } from '../types';
 
-function DraggableTicket({ ticket }: { ticket: Ticket }) {
+function DraggableTicket({ ticket, onDelete }: { ticket: Ticket; onDelete: (id: string) => void }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id: ticket.id,
   });
@@ -18,14 +18,24 @@ function DraggableTicket({ ticket }: { ticket: Ticket }) {
       style={style}
       {...listeners}
       {...attributes}
-      className="bg-white p-4 rounded-lg shadow text-gray-900 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow relative z-10"
+      className="bg-white p-4 rounded-lg shadow text-gray-900 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow relative group"
     >
-      {ticket.title}
+      <div className="flex justify-between items-start">
+        <p>{ticket.title}</p>
+        
+        <button
+          onPointerDown={(e) => e.stopPropagation()} 
+          onClick={() => onDelete(ticket.id)}
+          className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }
 
-function DroppableColumn({ status, tickets }: { status: string; tickets: Ticket[] }) {
+function DroppableColumn({ status, tickets, onDelete }: { status: string; tickets: Ticket[]; onDelete: (id: string) => void }) {
   const { setNodeRef, isOver } = useDroppable({
     id: status,
   });
@@ -40,7 +50,7 @@ function DroppableColumn({ status, tickets }: { status: string; tickets: Ticket[
       <h2 className="font-bold text-gray-700 mb-4">{status.replace('_', ' ')}</h2>
       <div className="flex flex-col gap-3 min-h-[150px]">
         {tickets.map((ticket) => (
-          <DraggableTicket key={ticket.id} ticket={ticket} />
+          <DraggableTicket key={ticket.id} ticket={ticket} onDelete={onDelete} />
         ))}
       </div>
     </div>
@@ -118,6 +128,24 @@ export default function Board() {
     }
   };
 
+  const handleDeleteTicket = async (id: string) => {
+    setTickets((current) => current.filter((t) => t.id !== id));
+
+    try {
+      const response = await fetch(`http://localhost:3000/api/tickets/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        console.error('Failed to delete from DB');
+        fetchTickets();
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      fetchTickets();
+    }
+  };
+
   const columns: Array<Ticket['status']> = ['TODO', 'IN_PROGRESS', 'DONE'];
 
   return (
@@ -141,7 +169,8 @@ export default function Board() {
             <DroppableColumn 
               key={status} 
               status={status} 
-              tickets={tickets.filter((t) => t.status === status)} 
+              tickets={tickets.filter((t) => t.status === status)}
+              onDelete={handleDeleteTicket} 
             />
           ))}
         </div>

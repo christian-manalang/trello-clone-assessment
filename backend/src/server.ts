@@ -29,7 +29,7 @@ const adapter = new PrismaBetterSqlite3({
 const prisma = new PrismaClient({ adapter });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/api/tickets', async (req, res) => {
   try {
@@ -57,10 +57,11 @@ app.post('/api/tickets', async (req, res) => {
 app.patch('/api/tickets/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, title, description, priority } = req.body;
+    
     const updatedTicket = await prisma.ticket.update({
       where: { id },
-      data: { status },
+      data: { status, title, description, priority },
     });
     res.json(updatedTicket);
   } catch (error) {

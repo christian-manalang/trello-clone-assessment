@@ -6,13 +6,22 @@ datasource db {
   provider = "sqlite"
 }
 
+model Column {
+  id        String   @id @default(uuid())
+  title     String
+  createdAt DateTime @default(now())
+  tickets   Ticket[]
+}
+
 model Ticket {
   id          String   @id @default(uuid())
   title       String
-  description String?
-  imageUrl    String?
-  status      String   @default("TODO")
-  priority    String   @default("LOW")
+  description String?  
+  imageUrls   String   @default("[]")
+  priority    String   @default("LOW") 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  columnId    String   
+  column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
 }

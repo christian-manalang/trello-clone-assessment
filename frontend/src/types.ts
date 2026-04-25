@@ -1,9 +1,14 @@
+export interface Column {
+  id: string;
+  title: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
   description?: string;
-  imageUrl?: string;
-  status: 'TODO' | 'IN_PROGRESS' | 'DONE';
+  imageUrls: string;
+  columnId: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH';
   createdAt: string; 
   updatedAt: string; 
